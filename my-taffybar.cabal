@@ -1,0 +1,58 @@
+-- This file has been generated from package.yaml by hpack version 0.21.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 3fb61270c05f9291232cdcc8a088538da702953149f9a84ba5219c310a4e4c35
+
+name:           my-taffybar
+version:        0.0.1.0
+description:    Please see the README on Github at <https://github.com/pjan/taffybar#readme>
+homepage:       https://github.com/pjan/taffybar#readme
+bug-reports:    https://github.com/pjan/taffybar/issues
+author:         pjan vandaele
+maintainer:     pjan@pjan.io
+copyright:      2018 pjan vandaele
+license:        MIT
+license-file:   LICENSE.md
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    LICENSE.md
+    package.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/pjan/taffybar
+
+flag documentation
+  description: link documentation to source
+  manual: True
+  default: False
+
+library
+  other-modules:
+      Paths_my_taffybar
+  hs-source-dirs:
+      lib
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , taffybar
+  if flag(documentation)
+    build-depends:
+        hscolour
+  default-language: Haskell2010
+
+executable my-taffybar-exe
+  main-is: taffybar.hs
+  other-modules:
+      Paths_my_taffybar
+  hs-source-dirs:
+      ./.
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , my-taffybar
+    , taffybar
+  default-language: Haskell2010
