@@ -1,0 +1,24 @@
+include "solarized.rc"
+
+style "default" {
+    font_name = "FiraCode-Retina 10"
+}
+
+style "dark" = "default" {
+    bg[NORMAL]        = @black
+    bg[PRELIGHT]      = @black
+
+    fg[NORMAL]        = @base01
+    fg[PRELIGHT]      = @cyan
+}
+
+style "light"  = "default" {
+    bg[NORMAL]        = @base3
+    bg[PRELIGHT]      = @base1
+
+    fg[NORMAL]        = @base00
+    fg[PRELIGHT]      = @red
+}
+
+widget "Taffybar*"                style "dark"
+
