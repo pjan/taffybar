@@ -1,5 +1,26 @@
-import ./nix/package.nix {
-    packageName = "my-xmonad";
+let
+
+  mkTaffybar = pkgs: haskellPkgs:
+    let
+      myTaffybarEnv = haskellPkgs.ghcWithPackages (self: [ haskellPkgs.my-taffybar ]);
+    in pkgs.stdenv.mkDerivation {
+      name = "taffybar-with-packages";
+
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      buildCommand = ''
+        mkdir -p $out/bin
+        makeWrapper ${myTaffybarEnv}/bin/my-taffybar-exe $out/bin/taffybar \
+          --set NIX_GHC "${myTaffybarEnv}/bin/ghc" \
+          --prefix PATH : "${pkgs.htop}/bin"
+      '';
+
+      meta = {
+        platforms = pkgs.lib.platforms.unix;
+      };
+    };
+
+in import ./nix/package.nix {
+    packageName = "my-taffybar";
 
     root = ./.;
 
@@ -9,16 +30,22 @@ import ./nix/package.nix {
 
     profiling = false;
 
-    # shellDepends = pkgs: haskellPkgs: [];
+    shellDepends = pkgs: haskellPkgs: [
+      haskellPkgs.hpack
+      haskellPkgs.ghcid
+      haskellPkgs.stylish-haskell
+    ];
 
     pinnedPkgsPath = ./nix/nixpkgs.json;
 
-    overrides = pkgs: { };
+    overrides = pkgs: {
+    };
 
     haskellOverrides = {
 
       skipTests = [
         "ghc-mod"
+        "hasktags"
       ];
 
       jailbreak = [
@@ -35,17 +62,28 @@ import ./nix/package.nix {
       justStaticExecutables = [
         "ghc-mod"
         "brittany"
+        "hpack"
       ];
 
       path = ./nix/overrides/haskell;
 
-      manual = haskellLib: self: super: { };
+      manual = pkgs: self: super: {
+        gi-dbusmenugtk3 = pkgs.haskell.lib.addPkgconfigDepend super.gi-dbusmenugtk3 pkgs.gtk3;
+        taffybar = super.taffybar.overrideDerivation (drv: {
+          strictDeps = true;
+          src = pkgs.fetchFromGitHub {
+            owner = "taffybar";
+            repo = "taffybar";
+            rev = "v2.1.1";
+            sha256 = "12g9i0wbh4i66vjhwzcawb27r9pm44z3la4693s6j21cig521dqq";
+          };
+        });
+      };
 
     };
 
     results = {
-      pkgs = [ ];
-      haskellPkgs = [ ];
+      "taffybar" = mkTaffybar;
     };
 
 }

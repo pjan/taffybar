@@ -31,5 +31,6 @@ cabal.project.local
 cabal.project.local~
 .HTF/
 .ghc.environment.*
-result
-my-xmonad.cabal
+result*
+my-taffybar.cabal
+

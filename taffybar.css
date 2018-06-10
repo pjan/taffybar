@@ -1,0 +1,15 @@
+@define-color transparent rgba(0.0, 0.0, 0.0, 0.0);
+@define-color white #FFFFFF;
+@define-color black #000000;
+
+@define-color font-color @white;
+
+/* Top level styling */
+
+.taffy-window * {
+  font-family: "Noto Sans", "FiraCode-Retina",  sans-serif;
+  font-size: 10pt;
+  color: @font-color;
+  background-color: @black
+}
+

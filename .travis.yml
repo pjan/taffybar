@@ -1,0 +1,5 @@
+language: nix
+
+script:
+- travis_wait 60 nix-build
+
