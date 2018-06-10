@@ -4,15 +4,16 @@
   withHoogle       ? true,
   profiling        ? false,
   shellDepends     ? pkgs: haskellPkgs: with pkgs; with haskellPkgs; [
-    # brittany
+    brittany
     cabal-helper
     cabal-install
     ghc-mod
+    ghcid
     haskdogs
     hasktags
     hlint
     hpack
-    # lushtags
+    lushtags
     stylish-haskell
   ],
   pinnedPkgsPath   ? ./nixpkgs.json,
@@ -23,11 +24,9 @@
     skipHaddock = [];
     justStaticExecutables = [];
     path = ./overrides/haskell;
-    manual = haskellLib: super: self: {};
+    manual = pkgs: haskellLib: super: self: {};
   },
   results ?  {
-    pkgs = [];
-    haskellPkgs = [];
   }
 } :
 
@@ -73,78 +72,94 @@ let
     config = {
       allowUnfree = allowUnfree;
 
-      packageOverrides = pkgs: rec {
-        haskell = pkgs.haskell // {
-          packages = pkgs.haskell.packages // {
-            "${ghcVersion}" =
-              let
-                configOverrides = self: super: {
-                  ghc =
-                    if withHoogle
-                    then super.ghc // { withPackages = super.ghc.withHoogle; }
-                    else super.ghc;
+      packageOverrides = pkgs:
+        let
+          sourceFilter = name: type: with builtins; with pkgs.lib;
+          let
+            baseName = baseNameOf (toString name);
+          in
+            cleanSourceFilter name type &&
+            !(
+              (type == "directory" && baseName == "dist") ||
+              (type == "symlink" && hasPrefix "result" baseName)
+            );
 
-                  mkDerivation = args: super.mkDerivation (args // {
-                    enableLibraryProfiling = profiling;
-                  });
-                };
-
-                rootOverride = self: super: {
-                  "${name}" = self.callCabal2nix "${name}" root { };
-                };
-
-                generatedOverrides = self: super:
-                  if (builtins.pathExists hOverrides.path)
-                  then
-                    let
-                      toPackage = file: _: {
-                        name  = builtins.replaceStrings [ ".nix" ] [ "" ] file;
-                        value = self.callPackage (hOverrides.path + "/${file}") { };
-                      };
-                    in pkgs.lib.mapAttrs' toPackage (builtins.readDir hOverrides.path)
-                  else {};
-
-                makeOverrides = modifier: names: self: super:
-                  let
-                    toPackage = name: {
-                      inherit name;
-                      value = modifier super.${name};
-                    };
-                  in builtins.listToAttrs (map toPackage names);
-
-                manualOverrides = hOverrides.manual haskellLib;
-
-                shellOverride = self: super:
-                  if (shell)
-                  then {
-                    "${name}" =
-                      haskellLib.overrideCabal super."${name}"
-                      ( drv: {
-                        doBenchmark = true;
-                        buildDepends = shellDepends pkgs super;
-                      });
-                    }
-                  else {};
-
-                haskellLib = pkgs.haskell.lib;
-
-              in with haskellLib;
-                pkgs.haskell.packages."${ghcVersion}".override {
-                  overrides = composeExtensions [
-                    configOverrides
-                    generatedOverrides
-                    (makeOverrides dontCheck hOverrides.skipTests)
-                    (makeOverrides doJailbreak hOverrides.jailbreak)
-                    (makeOverrides dontHaddock hOverrides.skipHaddock)
-                    (makeOverrides justStaticExecutables hOverrides.justStaticExecutables)
-                    rootOverride
-                    manualOverrides
-                    shellOverride
-                  ];
-                };
+          source = pkgs.lib.cleanSourceWith {
+            filter = sourceFilter;
+            src = root;
           };
-        };
-      } // overrides pkgs;
+        in rec {
+          haskell = pkgs.haskell // {
+            packages = pkgs.haskell.packages // {
+              "${ghcVersion}" =
+                let
+                  configOverrides = self: super: {
+                    ghc =
+                      if withHoogle
+                      then super.ghc // { withPackages = super.ghc.withHoogle; }
+                      else super.ghc;
+
+                    mkDerivation = args: super.mkDerivation (args // {
+                      enableLibraryProfiling = profiling;
+                    });
+                  };
+
+                  rootOverride = self: super: {
+                    "${name}" = self.callCabal2nix "${name}" source { };
+                  };
+
+                  generatedOverrides = self: super:
+                    if (builtins.pathExists hOverrides.path)
+                    then
+                      let
+                        toPackage = file: _: {
+                          name  = builtins.replaceStrings [ ".nix" ] [ "" ] file;
+                          value = self.callPackage (hOverrides.path + "/${file}") { };
+                        };
+                      in pkgs.lib.mapAttrs' toPackage (builtins.readDir hOverrides.path)
+                    else {};
+
+                  makeOverrides = modifier: names: self: super:
+                    let
+                      toPackage = name: {
+                        inherit name;
+                        value = modifier super.${name};
+                      };
+                    in builtins.listToAttrs (map toPackage names);
+
+                  manualOverrides = hOverrides.manual pkgs;
+
+                  shellOverride = self: super:
+                    if (shell)
+                    then {
+                      "${name}" =
+                        pkgs.haskell.lib.overrideCabal super."${name}"
+                        ( drv: {
+                          doBenchmark = true;
+                          buildDepends = shellDepends pkgs super;
+                        });
+                      }
+                    else {};
+
+                  haskellLib = pkgs.haskell.lib;
+
+                in with haskellLib;
+                  pkgs.haskell.packages."${ghcVersion}".override {
+                    overrides = composeExtensions [
+                      configOverrides
+                      generatedOverrides
+                      (makeOverrides dontCheck hOverrides.skipTests)
+                      (makeOverrides doJailbreak hOverrides.jailbreak)
+                      (makeOverrides dontHaddock hOverrides.skipHaddock)
+                      (makeOverrides justStaticExecutables hOverrides.justStaticExecutables)
+                      rootOverride
+                      manualOverrides
+                      shellOverride
+                    ];
+                  };
+            };
+          };
+        } // overrides pkgs;
     };
 
     pkgs = mkPkgs pinnedPkgsPath { inherit config; };
@@ -156,8 +171,7 @@ let
     haskellLib = pkgs.haskell.lib;
 
     resultSet =
-      (toResultSet pkgs (results.pkgs or [])) //
-      (toResultSet haskellPkgs ((results.haskellPkgs or []) ++ [ name ]));
+      lib.mapAttrs (name: fn: fn pkgs haskellPkgs) results // { "${name}" = haskellPkgs."${name}"; };
 
     ### Utility functions
 
@@ -169,9 +183,6 @@ let
     /* a composeExtensions version for working with a list of extensions
     */
     composeExtensions = pkgs.lib.fold pkgs.lib.composeExtensions (_: _: {});
-
-    toResultSet = pkgs: names:
-      lib.foldl (acc: name: acc // { "${name}" = pkgs."${name}"; }) {} names;
 
   in {
 
@@ -198,6 +209,7 @@ let
     shellHook = ''
       export NIX_GHC_LIBDIR="$(dirname $(type -p ghc))/../lib/ghc-${shellEnv.ghc.version}"
       export cabal_helper_libexecdir=$(dirname $(which ghc))
+      hpack
     '';
   } );
 
@@ -207,3 +219,4 @@ in
   if inNixShell
   then shellDrv
   else releaseDrvs
+

@@ -27,7 +27,11 @@ ghc-options:
 - -Wredundant-constraints
 
 dependencies:
+- aeson
 - base >= 4.7 && < 5
+- colour
+- process
+- safe
 - taffybar
 
 library:

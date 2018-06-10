@@ -1,8 +1,8 @@
--- This file has been generated from package.yaml by hpack version 0.21.2.
+-- This file has been generated from package.yaml by hpack version 0.27.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3fb61270c05f9291232cdcc8a088538da702953149f9a84ba5219c310a4e4c35
+-- hash: 0dd34043486034a3aa0bde7c148c999882a5868d49f1cedae496cfdd1b5cdc10
 
 name:           my-taffybar
 version:        0.0.1.0
@@ -31,13 +31,19 @@ flag documentation
   default: False
 
 library
+  exposed-modules:
+      Data.Colour.Solarized
   other-modules:
       Paths_my_taffybar
   hs-source-dirs:
       lib
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , colour
+    , process
+    , safe
     , taffybar
   if flag(documentation)
     build-depends:
@@ -52,7 +58,11 @@ executable my-taffybar-exe
       ./.
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , colour
     , my-taffybar
+    , process
+    , safe
     , taffybar
   default-language: Haskell2010
