@@ -31,6 +31,6 @@ cabal.project.local
 cabal.project.local~
 .HTF/
 .ghc.environment.*
-result
+result*
 my-taffybar.cabal
 
